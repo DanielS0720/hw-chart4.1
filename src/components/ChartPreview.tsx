@@ -99,6 +99,19 @@ export const ChartPreview: React.FC = () => {
     datasets: datasets as any
   };
 
+  const customCanvasBackgroundPlugin = {
+    id: 'customCanvasBackgroundColor',
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    beforeDraw: (chart: any) => {
+      const { ctx } = chart;
+      ctx.save();
+      ctx.globalCompositeOperation = 'destination-over';
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, chart.width, chart.height);
+      ctx.restore();
+    }
+  };
+
   const chartOptions: ChartOptions<'bar' | 'line'> = {
     responsive: true,
     maintainAspectRatio: false,
@@ -247,7 +260,7 @@ export const ChartPreview: React.FC = () => {
       mediaRecorder.start();
 
       // c) Immediately trigger redraw animation
-      chartInstance.reset(); // Properly reset animation to start state
+      chartInstance.update('none'); // Update to trigger re-draw pipeline
       chartInstance.update(); // Redraw
 
       // d) Stop recording after animation finishes (duration is 1500ms + padding)
@@ -299,12 +312,12 @@ export const ChartPreview: React.FC = () => {
           className="w-full max-w-[1200px] aspect-[16/9] bg-white rounded-xl shadow-lg border border-slate-200 p-8 flex flex-col relative"
         >
           {/* Branding Watermark */}
-          <div className="absolute inset-0 flex flex-col justify-center items-center pointer-events-none opacity-5">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col justify-center items-center pointer-events-none opacity-5 z-0">
             <h1 className="text-6xl font-black uppercase tracking-widest text-[#303030] rotate-[-15deg]">PSU GANG</h1>
             <h2 className="text-4xl font-black uppercase tracking-widest text-[#303030] rotate-[-15deg]">BENCHMARKS</h2>
           </div>
 
-          <div className="absolute top-4 right-6 text-xs text-slate-400 font-medium">
+          <div className="absolute top-4 right-6 text-xs text-slate-400 font-medium z-10">
             psugang.com
           </div>
 
@@ -320,13 +333,29 @@ export const ChartPreview: React.FC = () => {
               <Bar
                 ref={chartRef}
                 data={chartData as ChartData<'bar'>}
-                options={chartOptions as ChartOptions<'bar'>}
+                options={{
+                  ...chartOptions as ChartOptions<'bar'>,
+                  plugins: {
+                    ...chartOptions.plugins,
+                    // @ts-expect-error preserveDrawingBuffer is needed for html2canvas
+                    preserveDrawingBuffer: true
+                  }
+                }}
+                plugins={[customCanvasBackgroundPlugin]}
               />
             ) : (
               <Line
                 ref={chartRef}
                 data={chartData as ChartData<'line'>}
-                options={chartOptions as ChartOptions<'line'>}
+                options={{
+                  ...chartOptions as ChartOptions<'line'>,
+                  plugins: {
+                    ...chartOptions.plugins,
+                    // @ts-expect-error preserveDrawingBuffer is needed for html2canvas
+                    preserveDrawingBuffer: true
+                  }
+                }}
+                plugins={[customCanvasBackgroundPlugin]}
               />
             )}
           </div>
