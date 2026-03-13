@@ -245,7 +245,7 @@ export const ChartPreview: React.FC = () => {
       await new Promise(r => setTimeout(r, 100));
       const dataUrl = await toPng(chartWrapperRef.current, {
         backgroundColor: '#ffffff',
-        pixelRatio: 2,
+        pixelRatio: 3, // Force high resolution (Ultra crisp / 4k capable)
         style: {
           transform: 'scale(1)',
           transformOrigin: 'top left'
@@ -294,13 +294,33 @@ export const ChartPreview: React.FC = () => {
         setIsRecording(false);
       };
 
+      // 1. Clone/save the current datasets' data
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const originalData = chartInstance.data.datasets.map((ds: any) => [...ds.data]);
+
+      // 2. Mutate the live datasets so all data points are 0
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      chartInstance.data.datasets.forEach((ds: any) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ds.data = ds.data.map((val: any) => typeof val === 'number' ? 0 : val);
+      });
+
+      // 3. Update 'none' to clear the chart instantly without animation
+      chartInstance.update('none');
+
+      // 4. Start the MediaRecorder
       mediaRecorder.start();
 
-      // c) Immediately trigger redraw animation
-      chartInstance.update('none'); // Update to trigger re-draw pipeline
-      chartInstance.update(); // Redraw
+      // 5. Restore the original data
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      chartInstance.data.datasets.forEach((ds: any, index: number) => {
+        ds.data = originalData[index];
+      });
 
-      // d) Stop recording after animation finishes (duration is 1500ms + padding)
+      // 6. Update to trigger the standard growth/draw animation while recording
+      chartInstance.update();
+
+      // 7. Stop recording after animation finishes (duration is 1500ms + padding)
       setTimeout(() => {
         if (mediaRecorder.state === 'recording') {
           mediaRecorder.stop();
