@@ -102,6 +102,8 @@ export const ChartPreview: React.FC = () => {
   const chartOptions: ChartOptions<'bar' | 'line'> = {
     responsive: true,
     maintainAspectRatio: false,
+    // CRITICAL FIX: ensure html2canvas can capture WebGL buffers
+    devicePixelRatio: window.devicePixelRatio || 1,
     animation: {
       duration: 1500,
       easing: 'easeOutQuart',
@@ -218,11 +220,10 @@ export const ChartPreview: React.FC = () => {
       const chartInstance = chartRef.current;
       const canvas = chartInstance.canvas;
 
-      // Update chart to reset animation state
-      chartInstance.update('none');
-
-      // Start capturing stream from canvas at 60fps
+      // a) Get stream at 60 FPS
       const stream = canvas.captureStream(60);
+
+      // b) Start MediaRecorder
       const mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
       const chunks: BlobPart[] = [];
 
@@ -245,10 +246,11 @@ export const ChartPreview: React.FC = () => {
 
       mediaRecorder.start();
 
-      // Trigger standard update to start animation
-      chartInstance.update();
+      // c) Immediately trigger redraw animation
+      chartInstance.reset(); // Properly reset animation to start state
+      chartInstance.update(); // Redraw
 
-      // Record for 2.5 seconds (covers 1.5s animation + 1s hold)
+      // d) Stop recording after animation finishes (duration is 1500ms + padding)
       setTimeout(() => {
         if (mediaRecorder.state === 'recording') {
           mediaRecorder.stop();

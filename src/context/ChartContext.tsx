@@ -49,7 +49,21 @@ export const ChartProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   };
 
   const updateData = (data: Partial<ChartDataState>) => {
-    setState(prev => ({ ...prev, data: { ...prev.data, ...data } }));
+    setState(prev => {
+      const nextData = { ...prev.data, ...data };
+
+      // If column mappings changed, update the rows to reflect new labels and values
+      if (data.xCol !== undefined || data.y1Col !== undefined || data.y2Col !== undefined) {
+        nextData.rows = nextData.rows.map(row => ({
+          ...row,
+          label: row[nextData.xCol]?.toString() || '',
+          value1: Number(row[nextData.y1Col]) || 0,
+          value2: nextData.y2Col ? Number(row[nextData.y2Col]) : null
+        }));
+      }
+
+      return { ...prev, data: nextData };
+    });
   };
 
   const updateRow = (id: string, updatedRow: Partial<DataRow>) => {
