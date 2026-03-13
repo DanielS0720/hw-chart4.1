@@ -132,8 +132,11 @@ export const ChartPreview: React.FC = () => {
   const chartOptions: ChartOptions<'bar' | 'line'> = {
     responsive: true,
     maintainAspectRatio: false,
-    // CRITICAL FIX: ensure html2canvas can capture WebGL buffers
-    devicePixelRatio: window.devicePixelRatio || 1,
+    // CRITICAL FIX: ensure html2canvas can capture WebGL buffers at high resolution
+    devicePixelRatio: Math.max(window.devicePixelRatio || 1, 2),
+    layout: {
+      padding: 50 // Adds breathing room around the chart elements so it doesn't look zoomed in
+    },
     animation: {
       duration: 1500,
       easing: 'easeOutQuart',
@@ -273,8 +276,21 @@ export const ChartPreview: React.FC = () => {
       // a) Get stream at 60 FPS
       const stream = canvas.captureStream(60);
 
-      // b) Start MediaRecorder
-      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+      // b) Start MediaRecorder with high quality encoding parameters
+      let mediaRecorder: MediaRecorder;
+      try {
+        mediaRecorder = new MediaRecorder(stream, {
+          mimeType: 'video/webm; codecs=vp9',
+          videoBitsPerSecond: 15000000 // 15 Mbps for ultra-high quality
+        });
+      } catch (e) {
+        console.warn('VP9 codec not supported, falling back to default webm codec.', e);
+        mediaRecorder = new MediaRecorder(stream, {
+          mimeType: 'video/webm',
+          videoBitsPerSecond: 15000000
+        });
+      }
+
       const chunks: BlobPart[] = [];
 
       mediaRecorder.ondataavailable = (e) => {
