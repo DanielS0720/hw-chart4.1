@@ -7,12 +7,13 @@ import {
   LineElement,
   PointElement,
   Title,
+  SubTitle,
   Tooltip,
   Legend
 } from 'chart.js';
 import type { ChartData, ChartOptions } from 'chart.js';
 import { Bar, Line } from 'react-chartjs-2';
-import html2canvas from 'html2canvas';
+import { toPng } from 'html-to-image';
 import { Download, Video } from 'lucide-react';
 import { useChartContext } from '../context/ChartContext';
 
@@ -23,6 +24,7 @@ ChartJS.register(
   LineElement,
   PointElement,
   Title,
+  SubTitle,
   Tooltip,
   Legend
 );
@@ -112,6 +114,21 @@ export const ChartPreview: React.FC = () => {
     }
   };
 
+  const watermarkPlugin = {
+    id: 'watermarkPlugin',
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    afterDraw: (chart: any) => {
+      const { ctx, chartArea } = chart;
+      if (!chartArea) return;
+      ctx.save();
+      ctx.font = '500 12px sans-serif';
+      ctx.fillStyle = '#94a3b8'; // text-slate-400
+      ctx.textAlign = 'right';
+      ctx.fillText('psugang.com', chartArea.right, 20); // Top right
+      ctx.restore();
+    }
+  };
+
   const chartOptions: ChartOptions<'bar' | 'line'> = {
     responsive: true,
     maintainAspectRatio: false,
@@ -134,7 +151,26 @@ export const ChartPreview: React.FC = () => {
         }
       },
       title: {
-        display: false, // Using HTML title instead for better export control
+        display: true,
+        text: config.title.toUpperCase(),
+        color: '#303030', // slate-800
+        font: {
+          family: "'Segoe UI', Roboto, sans-serif",
+          size: 28, // Matches text-3xl
+          weight: 'bold' // Chart.js font weight
+        },
+        padding: { top: 10, bottom: 5 }
+      },
+      subtitle: {
+        display: true,
+        text: config.componentName,
+        color: '#03D6B3',
+        font: {
+          family: "'Segoe UI', Roboto, sans-serif",
+          size: 20, // Matches text-xl
+          weight: 'bold'
+        },
+        padding: { bottom: 20 }
       },
       tooltip: {
         mode: 'index',
@@ -207,17 +243,18 @@ export const ChartPreview: React.FC = () => {
     try {
       // Small timeout to ensure rendering is complete
       await new Promise(r => setTimeout(r, 100));
-      const canvas = await html2canvas(chartWrapperRef.current, {
-        scale: 2, // High resolution
+      const dataUrl = await toPng(chartWrapperRef.current, {
         backgroundColor: '#ffffff',
-        logging: false,
-        useCORS: true
+        pixelRatio: 2,
+        style: {
+          transform: 'scale(1)',
+          transformOrigin: 'top left'
+        }
       });
 
-      const image = canvas.toDataURL('image/png');
       const link = document.createElement('a');
       link.download = `psu_gang_${config.title.replace(/\s+/g, '_').toLowerCase()}.png`;
-      link.href = image;
+      link.href = dataUrl;
       link.click();
     } catch (err) {
       console.error('Error exporting image:', err);
@@ -311,21 +348,6 @@ export const ChartPreview: React.FC = () => {
           ref={chartWrapperRef}
           className="w-full max-w-[1200px] aspect-[16/9] bg-white rounded-xl shadow-lg border border-slate-200 p-8 flex flex-col relative"
         >
-          {/* Branding Watermark */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col justify-center items-center pointer-events-none opacity-5 z-0">
-            <h1 className="text-6xl font-black uppercase tracking-widest text-[#303030] rotate-[-15deg]">PSU GANG</h1>
-            <h2 className="text-4xl font-black uppercase tracking-widest text-[#303030] rotate-[-15deg]">BENCHMARKS</h2>
-          </div>
-
-          <div className="absolute top-4 right-6 text-xs text-slate-400 font-medium z-10">
-            psugang.com
-          </div>
-
-          {/* Titles */}
-          <div className="mb-6 text-center z-10 relative">
-            <h1 className="text-3xl font-black text-slate-800 tracking-tight uppercase">{config.title}</h1>
-            <h2 className="text-xl font-bold text-[#03D6B3] mt-1">{config.componentName}</h2>
-          </div>
 
           {/* Canvas Container */}
           <div className="flex-1 relative w-full h-full z-10">
@@ -341,7 +363,7 @@ export const ChartPreview: React.FC = () => {
                     preserveDrawingBuffer: true
                   }
                 }}
-                plugins={[customCanvasBackgroundPlugin]}
+                plugins={[customCanvasBackgroundPlugin, watermarkPlugin]}
               />
             ) : (
               <Line
@@ -355,7 +377,7 @@ export const ChartPreview: React.FC = () => {
                     preserveDrawingBuffer: true
                   }
                 }}
-                plugins={[customCanvasBackgroundPlugin]}
+                plugins={[customCanvasBackgroundPlugin, watermarkPlugin]}
               />
             )}
           </div>
