@@ -138,7 +138,7 @@ export const ChartPreview: React.FC = () => {
       padding: 50 // Adds breathing room around the chart elements so it doesn't look zoomed in
     },
     animation: {
-      duration: 1500,
+      duration: 4000,
       easing: 'easeOutQuart',
     },
     plugins: {
@@ -278,15 +278,35 @@ export const ChartPreview: React.FC = () => {
 
       // b) Start MediaRecorder with high quality encoding parameters
       let mediaRecorder: MediaRecorder;
+      let finalMimeType = '';
+      let fileExtension = '';
+
+      const mp4MimeType = 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"';
+      const webmVp9MimeType = 'video/webm; codecs=vp9';
+      const genericWebmMimeType = 'video/webm';
+
+      if (MediaRecorder.isTypeSupported(mp4MimeType)) {
+        finalMimeType = mp4MimeType;
+        fileExtension = 'mp4';
+      } else if (MediaRecorder.isTypeSupported(webmVp9MimeType)) {
+        finalMimeType = webmVp9MimeType;
+        fileExtension = 'webm';
+      } else {
+        finalMimeType = genericWebmMimeType;
+        fileExtension = 'webm';
+      }
+
       try {
         mediaRecorder = new MediaRecorder(stream, {
-          mimeType: 'video/webm; codecs=vp9',
+          mimeType: finalMimeType,
           videoBitsPerSecond: 15000000 // 15 Mbps for ultra-high quality
         });
       } catch (e) {
-        console.warn('VP9 codec not supported, falling back to default webm codec.', e);
+        console.warn(`Initial mimeType ${finalMimeType} failed, falling back to ${genericWebmMimeType}.`, e);
+        finalMimeType = genericWebmMimeType;
+        fileExtension = 'webm';
         mediaRecorder = new MediaRecorder(stream, {
-          mimeType: 'video/webm',
+          mimeType: finalMimeType,
           videoBitsPerSecond: 15000000
         });
       }
@@ -300,10 +320,12 @@ export const ChartPreview: React.FC = () => {
       };
 
       mediaRecorder.onstop = () => {
-        const blob = new Blob(chunks, { type: 'video/webm' });
+        // Drop the codec info for the blob type
+        const blobType = finalMimeType.split(';')[0];
+        const blob = new Blob(chunks, { type: blobType });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
-        link.download = `psu_gang_anim_${config.title.replace(/\s+/g, '_').toLowerCase()}.webm`;
+        link.download = `psu_gang_anim_${config.title.replace(/\s+/g, '_').toLowerCase()}.${fileExtension}`;
         link.href = url;
         link.click();
         URL.revokeObjectURL(url);
@@ -336,12 +358,12 @@ export const ChartPreview: React.FC = () => {
       // 6. Update to trigger the standard growth/draw animation while recording
       chartInstance.update();
 
-      // 7. Stop recording after animation finishes (duration is 1500ms + padding)
+      // 7. Stop recording after animation finishes (duration is 4000ms + padding)
       setTimeout(() => {
         if (mediaRecorder.state === 'recording') {
           mediaRecorder.stop();
         }
-      }, 2500);
+      }, 4500);
 
     } catch (err) {
       console.error('Error exporting video:', err);
