@@ -54,15 +54,20 @@ export const ChartProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
       // If column mappings changed, update the rows to reflect new labels and values
       if (data.xCol !== undefined || data.y1Col !== undefined || data.y2Col !== undefined) {
-        nextData.rows = nextData.rows.map(row => ({
-          ...row,
-          label: row[nextData.xCol]?.toString() || '',
-          value1: Number(row[nextData.y1Col]) || 0,
-          value2: nextData.y2Col ? Number(row[nextData.y2Col]) : null
-        }));
+        nextData.rows = nextData.rows.map(row => {
+          const val1 = Number(row[nextData.y1Col]);
+          const val2 = nextData.y2Col ? Number(row[nextData.y2Col]) : null;
+
+          return {
+            ...row,
+            label: row[nextData.xCol] != null ? String(row[nextData.xCol]) : '',
+            value1: isNaN(val1) ? 0 : val1,
+            value2: val2 !== null && isNaN(val2) ? 0 : val2
+          };
+        });
       }
 
-      return { ...prev, data: nextData };
+      return { ...prev, data: { ...nextData } }; // Force new reference
     });
   };
 

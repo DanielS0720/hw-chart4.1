@@ -101,6 +101,8 @@ export const ChartPreview: React.FC = () => {
     datasets: datasets as any
   };
 
+  console.log('Data para Chart.js:', chartData);
+
   const customCanvasBackgroundPlugin = {
     id: 'customCanvasBackgroundColor',
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
