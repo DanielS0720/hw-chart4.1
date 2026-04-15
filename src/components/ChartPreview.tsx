@@ -137,7 +137,7 @@ export const ChartPreview: React.FC = () => {
     // CRITICAL FIX: ensure html2canvas can capture WebGL buffers at high resolution
     devicePixelRatio: Math.max(window.devicePixelRatio || 1, 2),
     layout: {
-      padding: 50 // Adds breathing room around the chart elements so it doesn't look zoomed in
+      padding: { top: 20, bottom: 20, left: 10, right: 40 }
     },
     animation: {
       duration: 4000,
@@ -410,7 +410,7 @@ export const ChartPreview: React.FC = () => {
         >
 
           {/* Canvas Container */}
-          <div className="flex-1 relative w-full h-full z-10">
+          <div className="relative w-full h-[400px] md:h-[500px] flex items-center justify-center z-10">
             {config.mode === 'bar' ? (
               <Bar
                 ref={chartRef}
