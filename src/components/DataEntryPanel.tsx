@@ -20,18 +20,24 @@ export const DataEntryPanel: React.FC = () => {
         skipEmptyLines: true,
         complete: (results) => {
           if (results.data && results.data.length > 0) {
+            console.log('CSV Parseado:', results.data);
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const firstRow = results.data[0] as Record<string, any>;
             const cols = Object.keys(firstRow);
 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const rows: DataRow[] = results.data.map((row: any, i) => ({
-              id: Date.now().toString() + i,
-              label: row[cols[0]]?.toString() || '',
-              value1: Number(row[cols[1]]) || 0,
-              value2: cols[2] ? Number(row[cols[2]]) : null,
-              ...row
-            }));
+            const rows: DataRow[] = results.data.map((row: any, i) => {
+              const val1 = Number(row[cols[1]]);
+              const val2 = cols[2] ? Number(row[cols[2]]) : null;
+
+              return {
+                id: Date.now().toString() + i,
+                label: row[cols[0]] != null ? String(row[cols[0]]) : '',
+                value1: isNaN(val1) ? 0 : val1,
+                value2: val2 !== null && isNaN(val2) ? 0 : val2,
+                ...row
+              };
+            });
 
             setColumns(cols);
             updateData({
